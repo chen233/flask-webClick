@@ -4,44 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Driver Test Booking System</title>
+    <!-- 引用本地 Bootstrap CSS -->
     <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script>
-$(document).ready(function() {
-    // 监听地区选择变化
-    $('#region_id').change(function() {
-        const regionId = $(this).val();
-        const centreSelect = $('#centre_id');
-
-        // 清空并禁用中心选择框
-        centreSelect.empty().prop('disabled', true).append(
-            $('<option>').val('').text('请选择地区后加载')
-        );
-
-        if (regionId) {
-            // 异步加载对应地区的中心
-            $.getJSON(`/get_centres/${regionId}`, function(data) {
-                if (data.length > 0) {
-                    centreSelect.empty().prop('disabled', false);
-                    data.forEach(centre => {
-                        centreSelect.append(
-                            $('<option>').val(centre.id).text(centre.name)
-                        );
-                    });
-                } else {
-                    centreSelect.append($('<option>').val('').text('该地区无可用中心'));
-                }
-            });
-        }
-    });
-
-    // 页面加载时触发一次（编辑场景）
-    {% if booking %}
-    $('#region_id').trigger('change');
-    {% endif %}
-});
-</script>
-
 </head>
 <body>
     <div class="container mt-4">

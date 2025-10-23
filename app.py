@@ -1,6 +1,6 @@
 import os
 import sqlite3
-from flask import Flask, render_template, request, redirect, url_for, flash, g, jsonify
+from flask import Flask, render_template, request, redirect, url_for, flash, g
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your-secret-key-here'
@@ -23,12 +23,9 @@ CREATE TABLE regions (
     name TEXT NOT NULL UNIQUE
 );
 
--- 重点检查这里：必须包含 region_id 字段和外键关联
 CREATE TABLE centres (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL UNIQUE,
-    region_id INTEGER NOT NULL, 
-    FOREIGN KEY (region_id) REFERENCES regions (id)  
+    name TEXT NOT NULL UNIQUE
 );
 
 CREATE TABLE bookings (
@@ -42,14 +39,15 @@ CREATE TABLE bookings (
     available_time TEXT NOT NULL,
     email TEXT NOT NULL,
     card_number TEXT NOT NULL,
-    expiry_month TEXT NOT NULL,
-    expiry_year TEXT NOT NULL,
+    expiry_date TEXT NOT NULL,
+    data TEXT,
     cvn TEXT NOT NULL,
     FOREIGN KEY (test_type_id) REFERENCES test_types (id),
     FOREIGN KEY (region_id) REFERENCES regions (id),
     FOREIGN KEY (centre_id) REFERENCES centres (id)
 );
 """
+
 
 def get_db():
     db = getattr(g, '_database', None)
@@ -58,15 +56,6 @@ def get_db():
         db.row_factory = sqlite3.Row
     return db
 
-@app.route('/get_centres/<int:region_id>')
-def get_centres(region_id):
-    # 查询该地区的所有中心
-    centres = query_db(
-        'SELECT id, name FROM centres WHERE region_id = ? ORDER BY name',
-        [region_id]
-    )
-    # 转换为JSON返回
-    return jsonify([{'id': c['id'], 'name': c['name']} for c in centres])
 
 @app.teardown_appcontext
 def close_connection(exception):
@@ -104,12 +93,7 @@ def index():
     # 获取所有下拉框数据
     test_types = query_db('SELECT * FROM test_types ORDER BY name')
     regions = query_db('SELECT * FROM regions ORDER BY name')
-    centres = query_db('''
-        SELECT c.*, r.name as region_name 
-        FROM centres c
-        JOIN regions r ON c.region_id = r.id
-        ORDER BY c.name
-    ''')
+    centres = query_db('SELECT * FROM centres ORDER BY name')
 
     # 获取所有预订记录，关联下拉框的名称
     bookings = query_db('''
@@ -153,19 +137,16 @@ def add_region():
     return redirect(url_for('index'))
 
 
-# 修改添加中心的处理函数
 @app.route('/add-centre', methods=['POST'])
 def add_centre():
     name = request.form['centre'].strip()
-    region_id = request.form.get('region_id')  # 获取提交的地区ID
-    if name and region_id:
+    if name:
         try:
-            execute_db('INSERT INTO centres (name, region_id) VALUES (?, ?)', [name, region_id])
+            execute_db('INSERT INTO centres (name) VALUES (?)', [name])
             flash('中心添加成功', 'success')
         except sqlite3.IntegrityError:
             flash('该中心已存在', 'danger')
-    # 关键：跳转回首页时，携带region_id参数（保留选中的地区）
-    return redirect(url_for('index', region_id=region_id))
+    return redirect(url_for('index'))
 
 
 @app.route('/delete-test-type/<int:id>', methods=['POST'])
@@ -208,8 +189,6 @@ def delete_centre(id):
 
 
 # 预订记录管理
-# 修改预订记录的添加和更新函数（适配新字段）
-# 添加预订
 @app.route('/add-booking', methods=['POST'])
 def add_booking():
     data = request.form
@@ -217,13 +196,21 @@ def add_booking():
         execute_db('''
             INSERT INTO bookings (
                 licence_number, contact_name, contact_phone, test_type_id, region_id, 
-                centre_id, available_time, email, card_number, expiry_month, expiry_year, cvn
+                centre_id, available_time, email, card_number, expiry_date, data, cvn
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', [
-            data['licence_number'], data['contact_name'], data['contact_phone'],
-            data['test_type_id'], data['region_id'], data['centre_id'],
-            data['available_time'], data['email'], data['card_number'],
-            data['expiry_month'], data['expiry_year'], data['cvn']
+            data['licence_number'],
+            data['contact_name'],
+            data['contact_phone'],
+            data['test_type_id'],
+            data['region_id'],
+            data['centre_id'],
+            data['available_time'],
+            data['email'],
+            data['card_number'],
+            data['expiry_date'],
+            data['data'],
+            data['cvn']
         ])
         flash('记录添加成功', 'success')
     except Exception as e:

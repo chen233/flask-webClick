@@ -32,27 +32,27 @@
 
 <div class="row mb-3">
     <div class="col-md-6">
-    <label for="region_id" class="form-label">Region</label>
-    <select class="form-select" id="region_id" name="region_id" required>
-        <option value="">选择地区</option>
-        {% for region in regions %}
-        <option value="{{ region.id }}"
-                {% if booking and booking.region_id == region.id %}selected{% endif %}>
-            {{ region.name }}
-        </option>
-        {% endfor %}
-    </select>
-</div>
-
-    <!-- 中心选择框初始状态设为禁用 -->
-    <!-- Centre 下拉框（初始禁用，随 Region 变化动态加载） -->
-<div class="col-md-6">
-    <label for="centre_id" class="form-label">Centre</label>
-    <select class="form-select" id="centre_id" name="centre_id" required disabled>
-        <option value="">请先选择地区</option>
-    </select>
-</div>
-
+        <label for="region_id" class="form-label">Region</label>
+        <select class="form-select" id="region_id" name="region_id" required>
+            {% for region in regions %}
+            <option value="{{ region.id }}"
+                    {% if booking and booking.region_id == region.id %}selected{% endif %}>
+                {{ region.name }}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-6">
+        <label for="centre_id" class="form-label">Centre</label>
+        <select class="form-select" id="centre_id" name="centre_id" required>
+            {% for centre in centres %}
+            <option value="{{ centre.id }}"
+                    {% if booking and booking.centre_id == centre.id %}selected{% endif %}>
+                {{ centre.name }}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
 </div>
 
 <div class="row mb-3">
@@ -75,10 +75,9 @@
                value="{{ booking.card_number if booking else '' }}" required>
     </div>
     <div class="col-md-4">
-        <label for="expiry_month" class="form-label">Expiry Month</label>
-        <input type="text" class="form-control" id="expiry_month" name="expiry_month"
-               placeholder="MM" maxlength="2"
-               value="{{ booking.expiry_month if booking else '' }}" required>
+        <label for="expiry_date" class="form-label">Expiry date</label>
+        <input type="month" class="form-control" id="expiry_date" name="expiry_date"
+               value="{{ booking.expiry_date if booking else '' }}" required>
     </div>
     <div class="col-md-4">
         <label for="cvn" class="form-label">CVN</label>
@@ -87,47 +86,7 @@
     </div>
 </div>
 
-
-<script>
-// 确保页面完全加载后执行
-$(document).ready(function() {
-    // 加载中心的函数
-    function loadCentres(regionId, selectedCentreId) {
-        const $centre = $('#centre_id');
-        $centre.html('<option value="">加载中...</option>').prop('disabled', true);
-
-        if (regionId) {
-            // 调用后端接口
-            $.getJSON(`/get_centres/${regionId}`, function(data) {
-                if (data.length > 0) {
-                    $centre.empty().prop('disabled', false);
-                    data.forEach(centre => {
-                        const $option = $(`<option value="${centre.id}">${centre.name}</option>`);
-                        if (selectedCentreId && centre.id == selectedCentreId) {
-                            $option.prop('selected', true);
-                        }
-                        $centre.append($option);
-                    });
-                } else {
-                    $centre.html('<option value="">该地区无中心，请先添加</option>');
-                }
-            }).fail(function() {
-                $centre.html('<option value="">加载失败，请刷新页面</option>');
-            });
-        } else {
-            $centre.html('<option value="">请先选择地区</option>');
-        }
-    }
-
-    // 监听地区变化
-    $('#region_id').on('change', function() {
-        loadCentres($(this).val());
-    });
-
-    // 编辑时初始化
-    {% if booking %}
-        // 强制触发一次地区选择事件
-        $('#region_id').val({{ booking.region_id }}).trigger('change');
-    {% endif %}
-});
-</script>
+<div class="mb-3">
+    <label for="data" class="form-label">data</label>
+    <textarea class="form-control" id="data" name="data" rows="3">{{ booking.data if booking else '' }}</textarea>
+</div>

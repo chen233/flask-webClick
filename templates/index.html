@@ -50,26 +50,13 @@
             <div class="col-md-4 mb-3">
                 <h6>中心</h6>
                 <form method="POST" action="{{ url_for('add_centre') }}" class="d-flex mb-2">
-                    <select name="region_id" class="form-select me-2" required>
-                        <option value="">选择地区</option>
-                        {% for region in regions %}
-                        <!-- 关键：如果URL中的region_id和当前地区ID一致，则保持选中 -->
-                        <option value="{{ region.id }}"
-                                {% if request.args.region_id and request.args.region_id|string == region.id|string %}
-                                    selected
-                                {% endif %}>
-                            {{ region.name }}
-                        </option>
-                        {% endfor %}
-                    </select>
                     <input type="text" name="centre" class="form-control me-2" placeholder="新增中心" required>
                     <button type="submit" class="btn btn-sm btn-primary">添加</button>
                 </form>
-                <!-- 中心列表（显示所属地区） -->
                 <ul class="list-group">
                     {% for centre in centres %}
                     <li class="list-group-item d-flex justify-content-between align-items-center">
-                        {{ centre.name }}（{{ centre.region_name }}）
+                        {{ centre.name }}
                         <form method="POST" action="{{ url_for('delete_centre', id=centre.id) }}" onsubmit="return confirmDelete()">
                             <button type="submit" class="btn btn-sm btn-danger">删除</button>
                         </form>
@@ -279,7 +266,6 @@
     <label for="data" class="form-label">data</label>
     <textarea class="form-control" id="data" name="data" rows="3">{{ booking.data if booking else '' }}</textarea>
 </div>
-
 {% endmacro %}
 
 {{ form_fields() }}
