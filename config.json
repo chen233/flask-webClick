@@ -1,0 +1,20 @@
+{
+    "TARGET_URL": "https://www.service.transport.qld.gov.au/SBSExternal/public/WelcomeDrivingTest.xhtml",
+    "INPUT_DATA": {
+        "dlNumber": "133157441",
+        "contactName": "Ron",
+        "contactPhone": "0450625916",
+        "Test type": "Class C/CA - Car (manual/automatic)",
+        "Region": "SEQ BRISBANE SOUTHSIDE",
+        "Centre": "Greenslopes CSC",
+        "Target Time": "2025-12-15 15:00",
+        "Time Tolerance": 60,
+        "howTime": 60,
+        "contactEmail": "ronwang999@gmail.com",
+        "CardNumber": "4017983298307783",
+        "ExpiryMonth": "11",
+        "ExpiryYear": "28",
+        "CVN": "368"
+    },
+    "WAIT_TIME": 10
+}

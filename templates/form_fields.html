@@ -1,0 +1,92 @@
+<div class="row mb-3">
+    <div class="col-md-6">
+        <label for="licence_number" class="form-label">Queensland learners permit / driver licence number</label>
+        <input type="text" class="form-control" id="licence_number" name="licence_number"
+               value="{{ booking.licence_number if booking else '' }}" required>
+    </div>
+    <div class="col-md-6">
+        <label for="contact_name" class="form-label">Contact name</label>
+        <input type="text" class="form-control" id="contact_name" name="contact_name"
+               value="{{ booking.contact_name if booking else '' }}" required>
+    </div>
+</div>
+
+<div class="row mb-3">
+    <div class="col-md-6">
+        <label for="contact_phone" class="form-label">Contact phone number</label>
+        <input type="text" class="form-control" id="contact_phone" name="contact_phone"
+               value="{{ booking.contact_phone if booking else '' }}" required>
+    </div>
+    <div class="col-md-6">
+        <label for="test_type_id" class="form-label">Test type</label>
+        <select class="form-select" id="test_type_id" name="test_type_id" required>
+            {% for type in test_types %}
+            <option value="{{ type.id }}"
+                    {% if booking and booking.test_type_id == type.id %}selected{% endif %}>
+                {{ type.name }}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+</div>
+
+<div class="row mb-3">
+    <div class="col-md-6">
+        <label for="region_id" class="form-label">Region</label>
+        <select class="form-select" id="region_id" name="region_id" required>
+            {% for region in regions %}
+            <option value="{{ region.id }}"
+                    {% if booking and booking.region_id == region.id %}selected{% endif %}>
+                {{ region.name }}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-6">
+        <label for="centre_id" class="form-label">Centre</label>
+        <select class="form-select" id="centre_id" name="centre_id" required>
+            {% for centre in centres %}
+            <option value="{{ centre.id }}"
+                    {% if booking and booking.centre_id == centre.id %}selected{% endif %}>
+                {{ centre.name }}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+</div>
+
+<div class="row mb-3">
+    <div class="col-md-6">
+        <label for="available_time" class="form-label">Available booking time</label>
+        <input type="datetime-local" class="form-control" id="available_time" name="available_time"
+               value="{{ booking.available_time if booking else '' }}" required>
+    </div>
+    <div class="col-md-6">
+        <label for="email" class="form-label">Email address</label>
+        <input type="email" class="form-control" id="email" name="email"
+               value="{{ booking.email if booking else '' }}" required>
+    </div>
+</div>
+
+<div class="row mb-3">
+    <div class="col-md-4">
+        <label for="card_number" class="form-label">Card number</label>
+        <input type="text" class="form-control" id="card_number" name="card_number"
+               value="{{ booking.card_number if booking else '' }}" required>
+    </div>
+    <div class="col-md-4">
+        <label for="expiry_date" class="form-label">Expiry date</label>
+        <input type="month" class="form-control" id="expiry_date" name="expiry_date"
+               value="{{ booking.expiry_date if booking else '' }}" required>
+    </div>
+    <div class="col-md-4">
+        <label for="cvn" class="form-label">CVN</label>
+        <input type="text" class="form-control" id="cvn" name="cvn"
+               value="{{ booking.cvn if booking else '' }}" required>
+    </div>
+</div>
+
+<div class="mb-3">
+    <label for="data" class="form-label">data</label>
+    <textarea class="form-control" id="data" name="data" rows="3">{{ booking.data if booking else '' }}</textarea>
+</div>

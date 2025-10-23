@@ -1,0 +1,263 @@
+import os
+import sqlite3
+from flask import Flask, render_template, request, redirect, url_for, flash, g
+
+app = Flask(__name__)
+app.config['SECRET_KEY'] = 'your-secret-key-here'
+app.config['DATABASE'] = os.path.join(app.root_path, 'database.db')
+
+# 数据库表结构 SQL 语句（直接写在 Python 中）
+SCHEMA_SQL = """
+DROP TABLE IF EXISTS test_types;
+DROP TABLE IF EXISTS regions;
+DROP TABLE IF EXISTS centres;
+DROP TABLE IF EXISTS bookings;
+
+CREATE TABLE test_types (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE
+);
+
+CREATE TABLE regions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE
+);
+
+CREATE TABLE centres (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE
+);
+
+CREATE TABLE bookings (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    licence_number TEXT NOT NULL,
+    contact_name TEXT NOT NULL,
+    contact_phone TEXT NOT NULL,
+    test_type_id INTEGER NOT NULL,
+    region_id INTEGER NOT NULL,
+    centre_id INTEGER NOT NULL,
+    available_time TEXT NOT NULL,
+    email TEXT NOT NULL,
+    card_number TEXT NOT NULL,
+    expiry_date TEXT NOT NULL,
+    data TEXT,
+    cvn TEXT NOT NULL,
+    FOREIGN KEY (test_type_id) REFERENCES test_types (id),
+    FOREIGN KEY (region_id) REFERENCES regions (id),
+    FOREIGN KEY (centre_id) REFERENCES centres (id)
+);
+"""
+
+
+def get_db():
+    db = getattr(g, '_database', None)
+    if db is None:
+        db = g._database = sqlite3.connect(app.config['DATABASE'])
+        db.row_factory = sqlite3.Row
+    return db
+
+
+@app.teardown_appcontext
+def close_connection(exception):
+    db = getattr(g, '_database', None)
+    if db is not None:
+        db.close()
+
+
+def init_db():
+    with app.app_context():
+        db = get_db()
+        # 执行 Python 中定义的 SQL 语句
+        db.cursor().executescript(SCHEMA_SQL)
+        db.commit()
+
+
+def query_db(query, args=(), one=False):
+    cur = get_db().execute(query, args)
+    rv = cur.fetchall()
+    cur.close()
+    return (rv[0] if rv else None) if one else rv
+
+
+def execute_db(query, args=()):
+    db = get_db()
+    cur = db.execute(query, args)
+    db.commit()
+    id = cur.lastrowid
+    cur.close()
+    return id
+
+
+@app.route('/')
+def index():
+    # 获取所有下拉框数据
+    test_types = query_db('SELECT * FROM test_types ORDER BY name')
+    regions = query_db('SELECT * FROM regions ORDER BY name')
+    centres = query_db('SELECT * FROM centres ORDER BY name')
+
+    # 获取所有预订记录，关联下拉框的名称
+    bookings = query_db('''
+        SELECT b.*, tt.name as test_type_name, r.name as region_name, c.name as centre_name
+        FROM bookings b
+        JOIN test_types tt ON b.test_type_id = tt.id
+        JOIN regions r ON b.region_id = r.id
+        JOIN centres c ON b.centre_id = c.id
+        ORDER BY b.id DESC
+    ''')
+
+    return render_template('index.html',
+                           bookings=bookings,
+                           test_types=test_types,
+                           regions=regions,
+                           centres=centres)
+
+
+# 下拉框数据管理
+@app.route('/add-test-type', methods=['POST'])
+def add_test_type():
+    name = request.form['test_type'].strip()
+    if name:
+        try:
+            execute_db('INSERT INTO test_types (name) VALUES (?)', [name])
+            flash('测试类型添加成功', 'success')
+        except sqlite3.IntegrityError:
+            flash('该测试类型已存在', 'danger')
+    return redirect(url_for('index'))
+
+
+@app.route('/add-region', methods=['POST'])
+def add_region():
+    name = request.form['region'].strip()
+    if name:
+        try:
+            execute_db('INSERT INTO regions (name) VALUES (?)', [name])
+            flash('地区添加成功', 'success')
+        except sqlite3.IntegrityError:
+            flash('该地区已存在', 'danger')
+    return redirect(url_for('index'))
+
+
+@app.route('/add-centre', methods=['POST'])
+def add_centre():
+    name = request.form['centre'].strip()
+    if name:
+        try:
+            execute_db('INSERT INTO centres (name) VALUES (?)', [name])
+            flash('中心添加成功', 'success')
+        except sqlite3.IntegrityError:
+            flash('该中心已存在', 'danger')
+    return redirect(url_for('index'))
+
+
+@app.route('/delete-test-type/<int:id>', methods=['POST'])
+def delete_test_type(id):
+    # 检查是否有关联的预订记录
+    bookings = query_db('SELECT id FROM bookings WHERE test_type_id = ?', [id])
+    if bookings:
+        flash('无法删除，该测试类型已被预订记录使用', 'danger')
+        return redirect(url_for('index'))
+
+    execute_db('DELETE FROM test_types WHERE id = ?', [id])
+    flash('测试类型已删除', 'success')
+    return redirect(url_for('index'))
+
+
+@app.route('/delete-region/<int:id>', methods=['POST'])
+def delete_region(id):
+    # 检查是否有关联的预订记录
+    bookings = query_db('SELECT id FROM bookings WHERE region_id = ?', [id])
+    if bookings:
+        flash('无法删除，该地区已被预订记录使用', 'danger')
+        return redirect(url_for('index'))
+
+    execute_db('DELETE FROM regions WHERE id = ?', [id])
+    flash('地区已删除', 'success')
+    return redirect(url_for('index'))
+
+
+@app.route('/delete-centre/<int:id>', methods=['POST'])
+def delete_centre(id):
+    # 检查是否有关联的预订记录
+    bookings = query_db('SELECT id FROM bookings WHERE centre_id = ?', [id])
+    if bookings:
+        flash('无法删除，该中心已被预订记录使用', 'danger')
+        return redirect(url_for('index'))
+
+    execute_db('DELETE FROM centres WHERE id = ?', [id])
+    flash('中心已删除', 'success')
+    return redirect(url_for('index'))
+
+
+# 预订记录管理
+@app.route('/add-booking', methods=['POST'])
+def add_booking():
+    data = request.form
+    try:
+        execute_db('''
+            INSERT INTO bookings (
+                licence_number, contact_name, contact_phone, test_type_id, region_id, 
+                centre_id, available_time, email, card_number, expiry_date, data, cvn
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', [
+            data['licence_number'],
+            data['contact_name'],
+            data['contact_phone'],
+            data['test_type_id'],
+            data['region_id'],
+            data['centre_id'],
+            data['available_time'],
+            data['email'],
+            data['card_number'],
+            data['expiry_date'],
+            data['data'],
+            data['cvn']
+        ])
+        flash('记录添加成功', 'success')
+    except Exception as e:
+        flash(f'添加失败: {str(e)}', 'danger')
+    return redirect(url_for('index'))
+
+
+@app.route('/update-booking/<int:id>', methods=['POST'])
+def update_booking(id):
+    data = request.form
+    try:
+        execute_db('''
+            UPDATE bookings SET
+                licence_number = ?, contact_name = ?, contact_phone = ?, test_type_id = ?, 
+                region_id = ?, centre_id = ?, available_time = ?, email = ?, card_number = ?, 
+                expiry_date = ?, data = ?, cvn = ?
+            WHERE id = ?
+        ''', [
+            data['licence_number'],
+            data['contact_name'],
+            data['contact_phone'],
+            data['test_type_id'],
+            data['region_id'],
+            data['centre_id'],
+            data['available_time'],
+            data['email'],
+            data['card_number'],
+            data['expiry_date'],
+            data['data'],
+            data['cvn'],
+            id
+        ])
+        flash('记录更新成功', 'success')
+    except Exception as e:
+        flash(f'更新失败: {str(e)}', 'danger')
+    return redirect(url_for('index'))
+
+
+@app.route('/delete-booking/<int:id>', methods=['POST'])
+def delete_booking(id):
+    execute_db('DELETE FROM bookings WHERE id = ?', [id])
+    flash('记录已删除', 'success')
+    return redirect(url_for('index'))
+
+
+if __name__ == '__main__':
+    # 初始化数据库（如果不存在）
+    if not os.path.exists(app.config['DATABASE']):
+        init_db()
+    app.run(debug=True)
