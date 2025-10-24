@@ -6,7 +6,58 @@ document.addEventListener('DOMContentLoaded', () => {
     const initialData = JSON.parse(document.getElementById('initialData').textContent);
     bindEvents();
     loadCentres(); // 页面加载时加载考试中心
+    setInterval(refreshStatus, 30000);
+    document.querySelectorAll('.start-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const licenceNumber = this.getAttribute('data-id');
+            // 发送启动任务请求
+            axios.post(`/api/start_task?licence_number=${licenceNumber}`)
+                .then(response => {
+                    if (response.data.status === 'success') {
+                        alert('任务已启动');
+                        refreshStatus(); // 立即刷新状态
+                    } else {
+                        alert('启动失败：' + response.data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('启动任务出错：', error);
+                    alert('启动任务失败');
+                });
+        });
+    });
+
 });
+function refreshStatus() {
+    axios.get('/api/status')
+        .then(response => {
+            if (response.data.status === 'success') {
+                updateTable(response.data.data);
+            }
+        })
+        .catch(error => {
+            console.error('刷新状态失败:', error);
+        });
+}
+// 更新表格数据
+function updateTable(records) {
+    const tableBody = document.getElementById('dataTableBody');
+    records.forEach(record => {
+        const row = tableBody.querySelector(`tr[data-id="${record.licence_number}"]`);
+        if (row) {
+            // 更新状态
+            const statusCell = row.cells[7];  // 根据实际列索引调整
+            const badgeClass = record.status === 1 ? 'bg-primary' :
+                             record.status === 2 ? 'bg-success' :
+                             record.status === 3 ? 'bg-danger' : 'bg-secondary';
+            statusCell.innerHTML = `<span class="badge ${badgeClass}">${record.status_text}</span>`;
+
+            // 更新结果
+            const resultCell = row.cells[8];  // 根据实际列索引调整
+            resultCell.textContent = record.result || '-';
+        }
+    });
+}
 
 function bindEvents() {
     document.getElementById('addBtn').addEventListener('click', openAddModal);

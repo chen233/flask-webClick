@@ -1,5 +1,11 @@
 from flask import Flask, render_template, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
+from apscheduler.schedulers.background import BackgroundScheduler
+from flask import Flask, render_template, request, jsonify
+from flask_sqlalchemy import SQLAlchemy
+from apscheduler.schedulers.background import BackgroundScheduler
+from datetime import datetime, timedelta
+import time
 
 app = Flask(__name__)
 
@@ -7,6 +13,122 @@ app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///learner_licence.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
+scheduler = BackgroundScheduler()
+
+
+@app.route('/api/start_task', methods=['POST'])
+def start_task():
+    licence_number = request.args.get('licence_number')
+    if not licence_number:
+        return jsonify({"status": "error", "message": "请提供驾照号码"})
+
+    record = LicenceRecord.query.get(licence_number)
+    if not record:
+        return jsonify({"status": "error", "message": "记录不存在"})
+
+    # 强制设置状态为“运行中”
+    record.status = 1
+    db.session.commit()
+
+    # 立即执行任务（也可以不立即执行，仅更新状态，由定时任务后续执行）
+    try:
+        task_result = execute_booking_task(record)
+        record.status = 2  # 任务完成
+        record.result = task_result
+        db.session.commit()
+        return jsonify({"status": "success", "message": "任务已执行完成"})
+    except Exception as e:
+        record.status = 0  # 执行失败，恢复未运行
+        db.session.commit()
+        return jsonify({"status": "error", "message": f"任务执行失败：{str(e)}"})
+# 任务执行函数
+def check_and_execute_tasks():
+    with app.app_context():  # 激活Flask上下文
+        records = LicenceRecord.query.all()
+        now = datetime.now()
+
+        for record in records:
+            # 解析预约时间
+            if not record.booking_time:
+                continue
+
+            try:
+                # 格式示例："2025-10-03至2025-11-08 18:54-18:57"
+                date_range, time_range = record.booking_time.split(' ')
+                start_date_str, end_date_str = date_range.split('至')
+                start_time_str, end_time_str = time_range.split('-')
+
+                # 转换为datetime对象
+                start_date = datetime.strptime(start_date_str, "%Y-%m-%d")
+                end_date = datetime.strptime(end_date_str, "%Y-%m-%d")
+                start_time = datetime.strptime(start_time_str, "%H:%M").time()
+                end_time = datetime.strptime(end_time_str, "%H:%M").time()
+
+                # 检查日期范围
+                if not (start_date <= now.date() <= end_date):
+                    if now.date() > end_date:
+                        record.status = 3  # 已过期
+                        db.session.commit()
+                    continue
+
+                # 检查时间范围
+                current_time = now.time()
+                if start_time <= current_time <= end_time:
+                    # 执行任务（这里替换为你的实际任务逻辑）
+                    if record.status != 1:  # 避免重复执行
+                        record.status = 1  # 运行中
+                        db.session.commit()
+
+                        # 模拟任务执行
+                        task_result = execute_booking_task(record)
+
+                        # 更新状态和结果
+                        record.status = 2  # 已完成
+                        record.result = task_result
+                        db.session.commit()
+                else:
+                    if record.status == 1:
+                        record.status = 0  # 未运行
+                        db.session.commit()
+
+            except Exception as e:
+                print(f"处理任务出错: {str(e)}")
+                continue
+
+
+# 实际执行的任务函数（替换为你的业务逻辑）
+def execute_booking_task(record):
+    # 这里写你的循环函数逻辑
+    time.sleep(2)  # 模拟耗时操作
+    return f"任务完成于 {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+
+
+# 启动定时任务
+def start_scheduler():
+    scheduler.add_job(
+        check_and_execute_tasks,
+        'interval',  # 间隔执行
+        seconds=30,  # 每30秒检查一次
+        max_instances=1  # 避免并发问题
+    )
+    scheduler.start()
+
+
+# 在应用启动时启动定时任务
+with app.app_context():
+    db.create_all()  # 确保表结构更新
+start_scheduler()
+
+
+# 新增API用于前端获取最新状态
+@app.route('/api/status', methods=['GET'])
+def get_status():
+    records = LicenceRecord.query.all()
+    return jsonify({
+        "status": "success",
+        "data": [record.to_dict() for record in records]
+    })
+
 
 # 定义数据模型
 class LicenceRecord(db.Model):
@@ -23,8 +145,12 @@ class LicenceRecord(db.Model):
     expiry_yy = db.Column(db.String(10), nullable=False)
     cvv = db.Column(db.String(10), nullable=False)
     email = db.Column(db.String(100), nullable=False)
+    status = db.Column(db.Integer, default=0)
+    # 存储返回结果
+    result = db.Column(db.Text, nullable=True)
 
     def to_dict(self):
+        status_map = {0: "未运行", 1: "运行中", 2: "已完成", 3: "已过期"}
         return {
             'licence_number': self.licence_number,
             'contact_name': self.contact_name,
@@ -37,7 +163,11 @@ class LicenceRecord(db.Model):
             'expiry_month': self.expiry_month,
             'expiry_yy': self.expiry_yy,
             'cvv': self.cvv,
-            'email': self.email
+            'email': self.email,
+            'status': self.status,
+            'status_text': status_map.get(self.status, "未知"),
+            'result': self.result
+
         }
 # 区域-考试中心映射
 region_centre_map = {

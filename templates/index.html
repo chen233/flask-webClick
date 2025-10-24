@@ -201,6 +201,8 @@
                     <th>Region（区域）</th>
                     <th>Centre（考试中心）</th>
                     <th>Available booking time（可预约时间）</th>
+                    <th>Status（状态）</th>
+                    <th>Result（结果）</th>
                     <th>Actions（操作）</th>
                 </tr>
             </thead>
@@ -214,10 +216,22 @@
                     <td>{{ item.region }}</td>
                     <td>{{ item.centre }}</td>
                     <td>{{ item.booking_time }}</td>
-                    <small class="text-muted">（日期范围内每天的时间段）</small>
+                    <td>
+                        <span class="badge {% if item.status == 1 %}bg-primary{% elif item.status == 2 %}bg-success{% elif item.status == 3 %}bg-danger{% else %}bg-secondary{% endif %}">
+                            {{ item.status_text }}
+                        </span>
+                    </td>
+                    <td>{{ item.result or '-' }}</td>
                     <td>
                         <button class="btn btn-sm edit-btn" data-id="{{ item.licence_number }}">Edit（编辑）</button>
                         <button class="btn btn-sm delete-btn" data-id="{{ item.licence_number }}">Delete（删除）</button>
+                        <button class="btn btn-sm start-btn btn-primary" data-id="{{ item.licence_number }}">
+                            {% if item.status == 1 %}
+                                任务已启动
+                            {% else %}
+                                启动任务
+                            {% endif %}
+                        </button>
                     </td>
                 </tr>
                 {% endfor %}
