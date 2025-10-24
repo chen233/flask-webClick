@@ -33,7 +33,8 @@
 <div class="row mb-3">
     <div class="col-md-6">
         <label for="region_id" class="form-label">Region</label>
-        <select class="form-select" id="region_id" name="region_id" required>
+        <select class="form-select" id="region_id" name="region_id" required onchange="loadCentres()">
+            <option value="">选择地区</option>
             {% for region in regions %}
             <option value="{{ region.id }}"
                     {% if booking and booking.region_id == region.id %}selected{% endif %}>
@@ -44,16 +45,12 @@
     </div>
     <div class="col-md-6">
         <label for="centre_id" class="form-label">Centre</label>
-        <select class="form-select" id="centre_id" name="centre_id" required>
-            {% for centre in centres %}
-            <option value="{{ centre.id }}"
-                    {% if booking and booking.centre_id == centre.id %}selected{% endif %}>
-                {{ centre.name }}
-            </option>
-            {% endfor %}
+        <select class="form-select" id="centre_id" name="centre_id" required disabled>
+            <option value="">请先选择地区</option>
         </select>
     </div>
 </div>
+
 
 <div class="row mb-3">
     <div class="col-md-6">
@@ -69,24 +66,78 @@
 </div>
 
 <div class="row mb-3">
-    <div class="col-md-4">
+    <div class="col-md-6">
         <label for="card_number" class="form-label">Card number</label>
         <input type="text" class="form-control" id="card_number" name="card_number"
                value="{{ booking.card_number if booking else '' }}" required>
     </div>
-    <div class="col-md-4">
-        <label for="expiry_date" class="form-label">Expiry date</label>
-        <input type="month" class="form-control" id="expiry_date" name="expiry_date"
-               value="{{ booking.expiry_date if booking else '' }}" required>
-    </div>
-    <div class="col-md-4">
+    <div class="col-md-6">
         <label for="cvn" class="form-label">CVN</label>
         <input type="text" class="form-control" id="cvn" name="cvn"
-               value="{{ booking.cvn if booking else '' }}" required>
+               value="{{ booking.cvn if booking else '' }}"
+               pattern="\d{3,4}" title="请输入3-4位安全码" required>
+    </div>
+    </div>
+    <div class="row mb-3">
+
+    <div class="col-md-6">
+        <label for="expiry_month" class="form-label">Expiry Month</label>
+        <input type="number" class="form-control" id="expiry_month" name="expiry_month"
+               value="{{ booking.expiry_month if booking else '' }}"  required>
+    </div>
+    <div class="col-md-6">
+        <label for="expiry_year" class="form-label">Expiry Year</label>
+        <input type="number" class="form-control" id="expiry_year" name="expiry_year"
+               value="{{ booking.expiry_year if booking else '' }}"
+               required>
     </div>
 </div>
 
-<div class="mb-3">
-    <label for="data" class="form-label">data</label>
-    <textarea class="form-control" id="data" name="data" rows="3">{{ booking.data if booking else '' }}</textarea>
-</div>
+<script>
+// 加载指定地区的中心
+function loadCentres() {
+    const regionId = document.getElementById('region_id').value;
+    const centreSelect = document.getElementById('centre_id');
+
+    // 重置中心下拉框
+    centreSelect.innerHTML = '<option value="">加载中...</option>';
+    centreSelect.disabled = true;
+
+    if (!regionId) {
+        centreSelect.innerHTML = '<option value="">请先选择地区</option>';
+        return;
+    }
+
+    // 调用API获取中心列表
+    fetch(`/api/centres-by-region?region_id=${regionId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.length === 0) {
+                centreSelect.innerHTML = '<option value="">该地区无可用中心</option>';
+                return;
+            }
+
+            // 构建中心选项
+            let options = '<option value="">选择中心</option>';
+            data.forEach(centre => {
+                // 编辑模式时保持选中状态
+                const selected = {{ booking.centre_id if booking else 'null' }} == centre.id ? 'selected' : '';
+                options += `<option value="${centre.id}" ${selected}>${centre.name}</option>`;
+            });
+            centreSelect.innerHTML = options;
+            centreSelect.disabled = false;  // 启用下拉框
+        })
+        .catch(error => {
+            centreSelect.innerHTML = '<option value="">加载失败，请重试</option>';
+            console.error('加载中心失败:', error);
+        });
+}
+
+// 页面加载时初始化（针对编辑模式）
+document.addEventListener('DOMContentLoaded', function() {
+    const regionId = document.getElementById('region_id').value;
+    if (regionId) {
+        loadCentres();  // 已选择地区时自动加载中心
+    }
+});
+</script>

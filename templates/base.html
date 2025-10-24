@@ -4,8 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Driver Test Booking System</title>
-    <!-- 引用本地 Bootstrap CSS -->
+    <!-- 引入 Bootstrap CSS -->
     <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+    <!-- 引入 Bootstrap Table CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/bootstrap-table@1.22.1/dist/bootstrap-table.min.css">
 </head>
 <body>
     <div class="container mt-4">
@@ -19,12 +21,20 @@
         {% endwith %}
         {% block content %}{% endblock %}
     </div>
+
+    <!-- 引入 jQuery (Bootstrap Table 依赖) -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- 引入 Bootstrap JS -->
     <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+    <!-- 引入 Bootstrap Table JS -->
+    <script src="https://unpkg.com/bootstrap-table@1.22.1/dist/bootstrap-table.min.js"></script>
+
     <script>
-        // 确认删除
+        // 确认删除函数
         function confirmDelete() {
             return confirm('确定要删除这条记录吗？');
         }
     </script>
+    {% block scripts %}{% endblock %}
 </body>
 </html>
