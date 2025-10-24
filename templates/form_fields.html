@@ -108,8 +108,8 @@ function loadCentres() {
         return;
     }
 
-    // 调用API获取中心列表
-    fetch(`/api/centres-by-region?region_id=${regionId}`)
+    // 修复接口路径，与后端保持一致
+    fetch(`/api/region_centres?region=${encodeURIComponent(regionId)}`)
         .then(response => response.json())
         .then(data => {
             if (data.length === 0) {
@@ -120,9 +120,9 @@ function loadCentres() {
             // 构建中心选项
             let options = '<option value="">选择中心</option>';
             data.forEach(centre => {
-                // 编辑模式时保持选中状态
-                const selected = {{ booking.centre_id if booking else 'null' }} == centre.id ? 'selected' : '';
-                options += `<option value="${centre.id}" ${selected}>${centre.name}</option>`;
+                // 修复编辑模式选中状态判断
+                const selected = {{ booking.centre_id|tojson if booking else 'null' }} == centre ? 'selected' : '';
+                options += `<option value="${centre}" ${selected}>${centre}</option>`;
             });
             centreSelect.innerHTML = options;
             centreSelect.disabled = false;  // 启用下拉框

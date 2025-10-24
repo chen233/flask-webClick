@@ -24,6 +24,21 @@ class LicenceRecord(db.Model):
     cvv = db.Column(db.String(10), nullable=False)
     email = db.Column(db.String(100), nullable=False)
 
+    def to_dict(self):
+        return {
+            'licence_number': self.licence_number,
+            'contact_name': self.contact_name,
+            'contact_phone': self.contact_phone,
+            'test_type': self.test_type,
+            'region': self.region,
+            'centre': self.centre,
+            'booking_time': self.booking_time,
+            'card_number': self.card_number,
+            'expiry_month': self.expiry_month,
+            'expiry_yy': self.expiry_yy,
+            'cvv': self.cvv,
+            'email': self.email
+        }
 # 区域-考试中心映射
 region_centre_map = {
     "SEQ BRISBANE NORTHSIDE（布里斯班北区）": ["Strathpine CSC", "Caboolture CSC", "Redcliffe CSC", "Zillmere CSC", "Toowong CSC"],
@@ -46,23 +61,54 @@ test_types = [
 def index():
     # 从数据库查询所有记录
     records = LicenceRecord.query.all()
+    # 将对象列表转换为字典列表（关键修复）
+    data = [record.to_dict() for record in records]
     return render_template(
         'index.html',
-        data=records,
+        data=data,  # 传递转换后的字典列表
         regions=list(region_centre_map.keys()),
-        test_types=test_types
-    )
+        test_types=test_types,
+        region_centre_map = region_centre_map  # 添加这一行
 
+    )
 @app.route('/api/region_centres', methods=['GET'])
 def get_centres():
     region = request.args.get('region')
     return jsonify(region_centre_map.get(region, []))
+
+@app.route('/api/data', methods=['GET'])
+def get_data():
+    licence_number = request.args.get('licence_number')
+    record = LicenceRecord.query.get(licence_number)
+    if record:
+        # 将数据库对象转换为字典返回
+        return jsonify({
+            "status": "success",
+            "data": {
+                "licence_number": record.licence_number,
+                "contact_name": record.contact_name,
+                "contact_phone": record.contact_phone,
+                "test_type": record.test_type,
+                "region": record.region,
+                "centre": record.centre,
+                "booking_time": record.booking_time,
+                "card_number": record.card_number,
+                "expiry_month": record.expiry_month,
+                "expiry_yy": record.expiry_yy,
+                "cvv": record.cvv,
+                "email": record.email
+            }
+        })
+    return jsonify({"status": "error", "message": "Record not found"})
+
 
 @app.route('/api/data', methods=['POST', 'PUT', 'DELETE'])
 def handle_data():
     if request.method == 'POST':
         # 新增数据
         data = request.get_json()
+        if not data.get('licence_number'):
+            return jsonify({"status": "error", "message": "licence_number is required（驾照号码为必填项）"}), 400
         new_record = LicenceRecord(
             licence_number=data['licence_number'],
             contact_name=data['contact_name'],
@@ -83,6 +129,8 @@ def handle_data():
     elif request.method == 'PUT':
         # 修改数据
         data = request.get_json()
+        if not data.get('licence_number'):
+            return jsonify({"status": "error", "message": "licence_number is required（驾照号码为必填项）"}), 400
         record = LicenceRecord.query.get(data['licence_number'])
         if record:
             record.contact_name = data['contact_name']

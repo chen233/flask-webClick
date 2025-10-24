@@ -20,83 +20,170 @@
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
-                        <form id="dataForm">
-                            <div class="row g-3">
-                                <div class="col-md-6">
-                                    <label for="licence_number" class="form-label">Queensland learners permit / driver licence number（昆士兰学习许可/驾照号码）</label>
-                                    <input type="text" class="form-control" id="licence_number" required>
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="contact_name" class="form-label">Contact name（联系人姓名）</label>
-                                    <input type="text" class="form-control" id="contact_name" required>
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="contact_phone" class="form-label">Contact phone number（联系电话）</label>
-                                    <input type="text" class="form-control" id="contact_phone" required>
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="test_type" class="form-label">Test type（考试类型）</label>
-                                    <select class="form-select" id="test_type" required>
-                                        {% for type in test_types %}
-                                            <option value="{{ type.value }}">{{ type.label }}（{{ type.value }}）</option>
-                                        {% endfor %}
-                                    </select>
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="region" class="form-label">Region（区域）</label>
-                                    <select class="form-select" id="region" required>
-                                        {% for region in regions %}
-                                            <option value="{{ region }}">{{ region }}</option>
-                                        {% endfor %}
-                                    </select>
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="centre" class="form-label">Centre（考试中心）</label>
-                                    <select class="form-select" id="centre" required></select>
-                                </div>
-                                <!-- 时间范围选择 -->
-                                <div class="col-md-6">
-                                    <label for="start_date" class="form-label">Start Date（开始日期）</label>
-                                    <input type="date" class="form-control" id="start_date" required>
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="start_time" class="form-label">Start Time（开始时间）</label>
-                                    <input type="time" class="form-control" id="start_time" required>
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="end_date" class="form-label">End Date（结束日期）</label>
-                                    <input type="date" class="form-control" id="end_date" required>
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="end_time" class="form-label">End Time（结束时间）</label>
-                                    <input type="time" class="form-control" id="end_time" required>
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="card_number" class="form-label">Card number（卡号）</label>
-                                    <input type="text" class="form-control" id="card_number" required>
-                                </div>
-                                <div class="col-md-2">
-                                    <label for="expiry_month" class="form-label">Expiry Month（过期月份）</label>
-                                    <input type="number" class="form-control" id="expiry_month" min="1" max="12" required>
-                                </div>
-                                <div class="col-md-2">
-                                    <label for="expiry_yy" class="form-label">Expiry YY（过期年份后两位）</label>
-                                    <input type="number" class="form-control" id="expiry_yy" min="0" max="99" required>
-                                </div>
-                                <div class="col-md-2">
-                                    <label for="cvv" class="form-label">CVV</label>
-                                    <input type="number" class="form-control" id="cvv" min="1" max="999" required>
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="email" class="form-label">Email address（电子邮箱）</label>
-                                    <input type="email" class="form-control" id="email" required>
-                                </div>
-                            </div>
-                        </form>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close（关闭）</button>
-                        <button type="button" class="btn btn-primary" id="saveBtn">Save（保存）</button>
+                        <!-- 模态框内的表单（替换原有表单） -->
+<form id="dataForm" class="row g-3">
+    <!-- 驾照号码 -->
+    <div class="col-md-6">
+        <label for="licence_number" class="form-label">驾照号码</label>
+        <input type="text" class="form-control" id="licence_number"
+               aria-describedby="licenceNumberFeedback" required>
+        <div id="licenceNumberFeedback" class="invalid-feedback">
+            请输入驾照号码（必填）
+        </div>
+    </div>
+
+    <!-- 联系人姓名 -->
+    <div class="col-md-6">
+        <label for="contact_name" class="form-label">联系人姓名</label>
+        <input type="text" class="form-control" id="contact_name"
+               aria-describedby="contactNameFeedback" required>
+        <div id="contactNameFeedback" class="invalid-feedback">
+            请输入联系人姓名（必填）
+        </div>
+    </div>
+
+    <!-- 联系电话 -->
+    <div class="col-md-6">
+        <label for="contact_phone" class="form-label">联系电话</label>
+        <input type="tel" class="form-control" id="contact_phone"
+               aria-describedby="contactPhoneFeedback" required>
+        <div id="contactPhoneFeedback" class="invalid-feedback">
+            请输入联系电话（必填）
+        </div>
+    </div>
+
+    <!-- 考试类型 -->
+    <div class="col-md-6">
+        <label for="test_type" class="form-label">考试类型</label>
+        <select class="form-select" id="test_type"
+                aria-describedby="testTypeFeedback" required>
+            <option selected disabled value="">选择考试类型...</option>
+            <!-- 选项会通过JS动态填充 -->
+        </select>
+        <div id="testTypeFeedback" class="invalid-feedback">
+            请选择考试类型（必填）
+        </div>
+    </div>
+
+    <!-- 区域 -->
+    <div class="col-md-6">
+        <label for="region" class="form-label">区域</label>
+        <select class="form-select" id="region"
+                aria-describedby="regionFeedback" required>
+            <option selected disabled value="">选择区域...</option>
+            <!-- 选项会通过JS动态填充 -->
+        </select>
+        <div id="regionFeedback" class="invalid-feedback">
+            请选择区域（必填）
+        </div>
+    </div>
+
+    <!-- 考试中心 -->
+    <div class="col-md-6">
+        <label for="centre" class="form-label">考试中心</label>
+        <select class="form-select" id="centre"
+                aria-describedby="centreFeedback" required>
+            <option selected disabled value="">先选择区域...</option>
+        </select>
+        <div id="centreFeedback" class="invalid-feedback">
+            请选择考试中心（必填）
+        </div>
+    </div>
+
+    <!-- 预约时间（开始） -->
+    <div class="col-md-3">
+        <label for="start_date" class="form-label">开始日期</label>
+        <input type="date" class="form-control" id="start_date"
+               aria-describedby="startDateFeedback" required>
+        <div id="startDateFeedback" class="invalid-feedback">
+            请选择开始日期（必填）
+        </div>
+    </div>
+    <div class="col-md-3">
+        <label for="start_time" class="form-label">开始时间</label>
+        <input type="time" class="form-control" id="start_time"
+               aria-describedby="startTimeFeedback" required>
+        <div id="startTimeFeedback" class="invalid-feedback">
+            请选择开始时间（必填）
+        </div>
+    </div>
+
+    <!-- 预约时间（结束） -->
+    <div class="col-md-3">
+        <label for="end_date" class="form-label">结束日期</label>
+        <input type="date" class="form-control" id="end_date"
+               aria-describedby="endDateFeedback" required>
+        <div id="endDateFeedback" class="invalid-feedback">
+            请选择结束日期（必填）
+        </div>
+    </div>
+    <div class="col-md-3">
+        <label for="end_time" class="form-label">结束时间</label>
+        <input type="time" class="form-control" id="end_time"
+               aria-describedby="endTimeFeedback" required>
+        <div id="endTimeFeedback" class="invalid-feedback">
+            请选择结束时间（必填）
+        </div>
+    </div>
+
+    <!-- 银行卡号（输入组示例，需要has-validation） -->
+    <div class="col-md-6">
+        <label for="card_number" class="form-label">银行卡号</label>
+        <div class="input-group has-validation">
+            <span class="input-group-text">卡</span>
+            <input type="text" class="form-control" id="card_number"
+                   aria-describedby="cardNumberFeedback" required>
+            <div id="cardNumberFeedback" class="invalid-feedback">
+                请输入银行卡号（必填）
+            </div>
+        </div>
+    </div>
+
+    <!-- 有效期月份 -->
+    <div class="col-md-3">
+        <label for="expiry_month" class="form-label">有效期月份</label>
+        <input type="text" class="form-control" id="expiry_month"
+               placeholder="MM" aria-describedby="expiryMonthFeedback" required>
+        <div id="expiryMonthFeedback" class="invalid-feedback">
+            请输入有效期月份（必填）
+        </div>
+    </div>
+
+    <!-- 有效期年份 -->
+    <div class="col-md-3">
+        <label for="expiry_yy" class="form-label">有效期年份</label>
+        <input type="text" class="form-control" id="expiry_yy"
+               placeholder="YY" aria-describedby="expiryYyFeedback" required>
+        <div id="expiryYyFeedback" class="invalid-feedback">
+            请输入有效期年份（必填）
+        </div>
+    </div>
+
+    <!-- CVV -->
+    <div class="col-md-6">
+        <label for="cvv" class="form-label">CVV码</label>
+        <input type="text" class="form-control" id="cvv"
+               aria-describedby="cvvFeedback" required>
+        <div id="cvvFeedback" class="invalid-feedback">
+            请输入CVV码（必填）
+        </div>
+    </div>
+
+    <!-- 邮箱 -->
+    <div class="col-md-6">
+        <label for="email" class="form-label">邮箱</label>
+        <input type="email" class="form-control" id="email"
+               aria-describedby="emailFeedback" required>
+        <div id="emailFeedback" class="invalid-feedback">
+            请输入有效的邮箱地址（必填）
+        </div>
+    </div>
+
+    <!-- 提交按钮 -->
+    <div class="col-12">
+        <button class="btn btn-primary" type="button" onclick="saveData()">保存</button>
+    </div>
+</form>
                     </div>
                 </div>
             </div>
@@ -127,6 +214,7 @@
                     <td>{{ item.region }}</td>
                     <td>{{ item.centre }}</td>
                     <td>{{ item.booking_time }}</td>
+                    <small class="text-muted">（日期范围内每天的时间段）</small>
                     <td>
                         <button class="btn btn-sm edit-btn" data-id="{{ item.licence_number }}">Edit（编辑）</button>
                         <button class="btn btn-sm delete-btn" data-id="{{ item.licence_number }}">Delete（删除）</button>
@@ -139,7 +227,12 @@
 
     <!-- 隐藏元素：用于传递初始数据给JS -->
     <script id="initialData" type="application/json">{{ data|tojson }}</script>
-
+    <script>
+        // 从后端获取区域-考试中心映射
+        window.regionCentreMap = {{ region_centre_map|tojson }};
+        // 从后端获取考试类型
+        window.testTypes = {{ test_types|tojson }};
+    </script>
     <!-- 引入外部JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
